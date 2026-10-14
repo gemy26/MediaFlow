@@ -19,10 +19,10 @@ export class RegisterUser {
 
   async execute(input: RegisterUserInput): Promise<User> {
     const data = await this.userRepository.findByEmail(input.email);
-    if(data) {
+    if (data) {
       throw new ConflictException('A user with this email already exists');
     }
-    
+
     const user = User.register({
       id: randomUUID(),
       sub: null,

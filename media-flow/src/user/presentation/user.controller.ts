@@ -18,10 +18,10 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { DeleteUser } from '../application/user-cases/delete-user';
-import { GetUser } from '../application/user-cases/get-user';
-import { ListUsers } from '../application/user-cases/list-users';
-import { RegisterUser } from '../application/user-cases/register-user';
+import { DeleteUser } from '../application/use-cases/delete-user';
+import { GetUser } from '../application/use-cases/get-user';
+import { ListUsers } from '../application/use-cases/list-users';
+import { RegisterUser } from '../application/use-cases/register-user';
 import { RegisterUserDto } from './dtos/register-user.dto';
 import { UserResponseDto } from './dtos/user-response.dto';
 
