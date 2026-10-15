@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { STORAGE } from '../ports/storage.port';
 import type { StoragePort } from '../ports/storage.port';
 import type { MediaRepositoryPort } from '../ports/media.repository.port';
@@ -18,6 +18,13 @@ export class CompleteUpload {
       media.sourceKey,
       media.uploadId!,
     );
+
+    if(uploadedParts.length === 0) {
+        throw new BadRequestException(
+            'No uploaded parts found',
+        );
+    }
+
     await this.storageService.completeMultipartUpload({
       key: media.sourceKey,
       uploadId: media.uploadId!,

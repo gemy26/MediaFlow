@@ -1,12 +1,26 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { GetMedia } from '../application/use-cases/get-media';
 import { MediaResponseDto } from './dtos/media-response.dto';
 import { MediaUpdateDto } from './dtos/media-update.dto';
@@ -15,10 +29,15 @@ import { DeleteMedia } from '../application/use-cases/delete-media';
 import { ListMedia } from '../application/use-cases/list-media';
 import { AddMediaDto } from './dtos/add-media.dto';
 import { AddMedia } from '../application/use-cases/add-media';
-import { AddMediaResponseDto } from './dtos/add-media-response.dto';
+import {
+  AddMediaResponseDto,
+  PresignedPartUrlDto,
+} from './dtos/add-media-response.dto';
 import { CompleteUpload } from '../application/use-cases/complete-upload';
+import { getUploadPartUrls } from '../application/use-cases/get-upload-part-urls';
 
 @Controller('api/media')
+@ApiTags('Media')
 export class MediaController {
   constructor(
     private readonly getMedia: GetMedia,
@@ -27,9 +46,12 @@ export class MediaController {
     private readonly listMedia: ListMedia,
     private readonly addMedia: AddMedia,
     private readonly completeUpload: CompleteUpload,
+    private readonly getUploadPartUrls: getUploadPartUrls,
   ) {}
 
   @Get('/')
+  @ApiOperation({ summary: 'List media' })
+  @ApiOkResponse({ type: MediaResponseDto, isArray: true })
   async listAll(): Promise<MediaResponseDto[]> {
     return (await this.listMedia.execute()).map((m) =>
       MediaResponseDto.fromDomain(m),
@@ -37,11 +59,20 @@ export class MediaController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get media by ID' })
+  @ApiParam({ name: 'id', format: 'uuid', description: 'Media identifier' })
+  @ApiOkResponse({ type: MediaResponseDto })
+  @ApiNotFoundResponse({ description: 'Media not found' })
   async findById(@Param('id') id: string) {
     return MediaResponseDto.fromDomain(await this.getMedia.execute(id));
   }
 
   @Put(':id')
+  @ApiOperation({ summary: 'Update media details' })
+  @ApiParam({ name: 'id', format: 'uuid', description: 'Media identifier' })
+  @ApiOkResponse({ description: 'Media updated' })
+  @ApiBadRequestResponse({ description: 'Invalid request body' })
+  @ApiNotFoundResponse({ description: 'Media not found' })
   async update(
     @Param('id') id: string,
     @Body() data: MediaUpdateDto,
@@ -50,11 +81,18 @@ export class MediaController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete media by ID' })
+  @ApiParam({ name: 'id', format: 'uuid', description: 'Media identifier' })
+  @ApiOkResponse({ description: 'Media deleted' })
   async delete(@Param('id') id: string) {
     return this.deleteMedia.execute(id);
   }
 
   @Post()
+  @ApiOperation({ summary: 'Initialize a multipart media upload' })
+  @ApiCreatedResponse({ type: AddMediaResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid request body' })
+  @ApiConflictResponse({ description: 'Media with this title already exists' })
   async initUpload(@Body() data: AddMediaDto): Promise<AddMediaResponseDto> {
     const ownerId = '';
     const output = await this.addMedia.execute({ ...data, ownerId });
@@ -62,7 +100,35 @@ export class MediaController {
   }
 
   @Post('/upload/:id/complete')
+  @ApiOperation({ summary: 'Complete a multipart media upload' })
+  @ApiParam({ name: 'id', format: 'uuid', description: 'Media identifier' })
+  @ApiCreatedResponse({ description: 'Multipart upload completed' })
+  @ApiBadRequestResponse({ description: 'No uploaded parts were found' })
+  @ApiNotFoundResponse({ description: 'Media not found' })
   async complete(@Param('id') id: string): Promise<void> {
     return await this.completeUpload.execute(id);
+  }
+
+  @Get('/:id/upload/parts')
+  @ApiOperation({ summary: 'Get presigned URLs for media upload parts' })
+  @ApiParam({ name: 'id', format: 'uuid', description: 'Media identifier' })
+  @ApiQuery({ name: 'from', type: Number, description: 'First part number' })
+  @ApiQuery({
+    name: 'count',
+    type: Number,
+    description: 'Number of part URLs to generate',
+  })
+  @ApiOkResponse({ type: PresignedPartUrlDto, isArray: true })
+  @ApiBadRequestResponse({ description: 'Invalid part range query parameters' })
+  @ApiNotFoundResponse({ description: 'Media not found' })
+  async getUrls(
+    @Param('id') id: string,
+    @Query('from', ParseIntPipe) from: number,
+    @Query('count', ParseIntPipe) count: number,
+  ): Promise<PresignedPartUrlDto[]> {
+    if (from === undefined || count === undefined)
+      throw new BadRequestException('Invalid Request Format');
+
+    return await this.getUploadPartUrls.execute(id, from, count);
   }
 }

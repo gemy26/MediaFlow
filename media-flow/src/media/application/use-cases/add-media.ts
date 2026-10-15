@@ -54,6 +54,8 @@ export class AddMedia {
 
     media.attachUploadId(UploadId);
 
+    await this.mediaRepository.save(media);
+
     const urls = await this.storageService.presignPartUrls({
       key: media.sourceKey,
       uploadId: media.uploadId!,
