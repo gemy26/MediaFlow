@@ -15,7 +15,7 @@ export const media = pgTable('Media', {
   description: varchar('description', { length: 256 }).default('').notNull(),
   mediaType: varchar('media_type'),
   totalParts: integer('total_parts').default(0).notNull(),
-  uploadId: varchar('upload_id').notNull(),
+  uploadId: varchar('upload_id'),
   sourceKey: varchar('source_key').unique().notNull(),
   duration: integer('duration'),
   mediaSize: bigint('media_size', { mode: 'number' }).notNull(),

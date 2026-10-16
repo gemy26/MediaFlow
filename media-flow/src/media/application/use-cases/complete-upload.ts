@@ -1,12 +1,19 @@
-import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { STORAGE } from '../ports/storage.port';
 import type { StoragePort } from '../ports/storage.port';
 import type { MediaRepositoryPort } from '../ports/media.repository.port';
+import { MEDIA_REPOSITORY } from '../ports/media.repository.port';
 
 @Injectable()
 export class CompleteUpload {
   constructor(
     @Inject(STORAGE) private readonly storageService: StoragePort,
+    @Inject(MEDIA_REPOSITORY)
     private readonly mediaRepository: MediaRepositoryPort,
   ) {}
   async execute(mediaId: string): Promise<void> {
@@ -19,10 +26,8 @@ export class CompleteUpload {
       media.uploadId!,
     );
 
-    if(uploadedParts.length === 0) {
-        throw new BadRequestException(
-            'No uploaded parts found',
-        );
+    if (uploadedParts.length === 0) {
+      throw new BadRequestException('No uploaded parts found');
     }
 
     await this.storageService.completeMultipartUpload({

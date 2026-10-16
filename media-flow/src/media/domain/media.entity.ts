@@ -84,6 +84,10 @@ export class Media {
     });
   }
 
+  static reconstitute(props: MediaProps): Media {
+    return new Media(props);
+  }
+
   static buildSourceKey(id: string): string {
     return `media/${id}/original`;
   }

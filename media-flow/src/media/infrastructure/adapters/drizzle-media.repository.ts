@@ -9,7 +9,7 @@ type MediaRow = typeof media.$inferSelect;
 type MediaInsert = typeof media.$inferInsert;
 
 export function toDomain(row: MediaRow): Media {
-  return Media.create({
+  return Media.reconstitute({
     id: row.id,
     ownerId: row.ownerId,
     title: row.title,
@@ -60,10 +60,13 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
   }
 
   async save(entity: Media): Promise<void> {
-    await this.db
-      .update(media)
-      .set(toPersistence(entity))
-      .where(eq(media.id, entity.id));
+    const values = toPersistence(entity);
+    const { id, ...updateValues } = values;
+
+    await this.db.insert(media).values(values).onConflictDoUpdate({
+      target: media.id,
+      set: updateValues,
+    });
   }
 
   async findOne(mediaId: string): Promise<Media | null> {
@@ -71,10 +74,17 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
       .select()
       .from(media)
       .where(and(eq(media.id, mediaId), eq(media.isDeleted, false)));
+
+    console.log('DB uploadId:', data?.uploadId);
+
     if (!data) {
       return null;
     }
-    return toDomain(data);
+
+    const entity = toDomain(data);
+    console.log('Domain uploadId:', entity.uploadId);
+
+    return entity;
   }
 
   async findAll(): Promise<Media[] | null> {
@@ -87,7 +97,10 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
 
   async findByTitle(title: string): Promise<Media[] | null> {
     title = title.toLowerCase();
-    const data = await this.db.select().from(media).where(eq(media.id, title));
+    const data = await this.db
+      .select()
+      .from(media)
+      .where(eq(media.title, title));
     return data.map((d) => toDomain(d));
   }
 }

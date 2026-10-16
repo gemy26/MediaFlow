@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { DrizzleMediaRepository } from '../../infrastructure/adapters/drizzle-media.repository';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { MediaRepositoryPort } from '../ports/media.repository.port';
+import { MEDIA_REPOSITORY } from '../ports/media.repository.port';
 
 export interface UpdateMediaInput {
   title?: string;
@@ -8,8 +9,11 @@ export interface UpdateMediaInput {
 }
 @Injectable()
 export class UpdateMedia {
-  constructor(private readonly mediaRepository: DrizzleMediaRepository) {}
+  constructor(
+    @Inject(MEDIA_REPOSITORY) readonly mediaRepository: MediaRepositoryPort,
+  ) {}
   async execute(id: string, input: UpdateMediaInput): Promise<void> {
+    //TODO: SHOULD HANDLE DELETED MEDIA
     const data = await this.mediaRepository.findOne(id);
     if (data === null)
       throw new NotFoundException(`Media with id ${id} not found`);

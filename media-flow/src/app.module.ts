@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { DrizzleModule } from './shared/infrastructure/database/postgres/drizzle.module';
 import { UserModule } from './user/user.module';
 import { MediaModule } from './media/media.module';
+import { S3Module } from './shared/infrastructure/Storage/s3/s3.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { MediaModule } from './media/media.module';
       isGlobal: true,
     }),
     DrizzleModule,
+    S3Module,
     UserModule,
     MediaModule,
   ],

@@ -8,6 +8,13 @@
       "when": 1791138151249,
       "tag": "0000_dashing_gambit",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792102665288,
+      "tag": "0001_sparkling_blink",
+      "breakpoints": true
     }
   ]
 }

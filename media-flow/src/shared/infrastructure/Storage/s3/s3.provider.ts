@@ -7,6 +7,7 @@ export const S3Provider = {
   inject: [ConfigService],
   useFactory: (config: ConfigService): S3Client => {
     const client = new S3Client({
+      endpoint: config.getOrThrow('MINIO_ENDPOINT'),
       credentials: {
         accessKeyId: config.getOrThrow('STORAGE_ACCESS_KEY_ID'),
         secretAccessKey: config.getOrThrow('STORAGE_SECRET_ACCESS_KEY'),

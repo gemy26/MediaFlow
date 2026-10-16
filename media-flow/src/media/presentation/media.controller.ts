@@ -34,7 +34,7 @@ import {
   PresignedPartUrlDto,
 } from './dtos/add-media-response.dto';
 import { CompleteUpload } from '../application/use-cases/complete-upload';
-import { getUploadPartUrls } from '../application/use-cases/get-upload-part-urls';
+import { GetUploadPartUrls } from '../application/use-cases/get-upload-part-urls';
 
 @Controller('api/media')
 @ApiTags('Media')
@@ -46,7 +46,7 @@ export class MediaController {
     private readonly listMedia: ListMedia,
     private readonly addMedia: AddMedia,
     private readonly completeUpload: CompleteUpload,
-    private readonly getUploadPartUrls: getUploadPartUrls,
+    private readonly getUploadPartUrls: GetUploadPartUrls,
   ) {}
 
   @Get('/')
@@ -94,7 +94,7 @@ export class MediaController {
   @ApiBadRequestResponse({ description: 'Invalid request body' })
   @ApiConflictResponse({ description: 'Media with this title already exists' })
   async initUpload(@Body() data: AddMediaDto): Promise<AddMediaResponseDto> {
-    const ownerId = '';
+    const ownerId = '6664882f-8200-4616-896c-78d52068aeea';
     const output = await this.addMedia.execute({ ...data, ownerId });
     return AddMediaResponseDto.from(output);
   }
