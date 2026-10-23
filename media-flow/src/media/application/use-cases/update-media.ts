@@ -13,7 +13,6 @@ export class UpdateMedia {
     @Inject(MEDIA_REPOSITORY) readonly mediaRepository: MediaRepositoryPort,
   ) {}
   async execute(id: string, input: UpdateMediaInput): Promise<void> {
-    //TODO: SHOULD HANDLE DELETED MEDIA
     const data = await this.mediaRepository.findOne(id);
     if (data === null)
       throw new NotFoundException(`Media with id ${id} not found`);

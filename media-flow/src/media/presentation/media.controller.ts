@@ -35,6 +35,7 @@ import {
 } from './dtos/add-media-response.dto';
 import { CompleteUpload } from '../application/use-cases/complete-upload';
 import { GetUploadPartUrls } from '../application/use-cases/get-upload-part-urls';
+import { MediaQueryDto } from './dtos/media-query.dto';
 
 @Controller('api/media')
 @ApiTags('Media')
@@ -49,11 +50,12 @@ export class MediaController {
     private readonly getUploadPartUrls: GetUploadPartUrls,
   ) {}
 
+  //TODO: Add pagination
   @Get('/')
   @ApiOperation({ summary: 'List media' })
   @ApiOkResponse({ type: MediaResponseDto, isArray: true })
-  async listAll(): Promise<MediaResponseDto[]> {
-    return (await this.listMedia.execute()).map((m) =>
+  async listAll(@Query() query: MediaQueryDto): Promise<MediaResponseDto[]> {
+    return (await this.listMedia.execute(query)).map((m) =>
       MediaResponseDto.fromDomain(m),
     );
   }
@@ -63,8 +65,11 @@ export class MediaController {
   @ApiParam({ name: 'id', format: 'uuid', description: 'Media identifier' })
   @ApiOkResponse({ type: MediaResponseDto })
   @ApiNotFoundResponse({ description: 'Media not found' })
-  async findById(@Param('id') id: string) {
-    return MediaResponseDto.fromDomain(await this.getMedia.execute(id));
+  async findById(
+    @Param('id') id: string,
+    @Query() query: MediaQueryDto,
+  ): Promise<MediaResponseDto> {
+    return MediaResponseDto.fromDomain(await this.getMedia.execute(id, query));
   }
 
   @Put(':id')
@@ -94,6 +99,7 @@ export class MediaController {
   @ApiBadRequestResponse({ description: 'Invalid request body' })
   @ApiConflictResponse({ description: 'Media with this title already exists' })
   async initUpload(@Body() data: AddMediaDto): Promise<AddMediaResponseDto> {
+    //TODO: REFACTOR static OWNERID
     const ownerId = '6664882f-8200-4616-896c-78d52068aeea';
     const output = await this.addMedia.execute({ ...data, ownerId });
     return AddMediaResponseDto.from(output);

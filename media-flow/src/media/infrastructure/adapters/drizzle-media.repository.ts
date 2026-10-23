@@ -4,7 +4,7 @@ import { DRIZZLE } from '../../../shared/infrastructure/database/postgres/drizzl
 import type { DrizzleDB } from '../../../shared/infrastructure/database/postgres/drizzle.provider';
 import { Inject, Injectable } from '@nestjs/common';
 import { media } from '../../../shared/infrastructure/database/postgres/schema/media.schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, SQL } from 'drizzle-orm';
 type MediaRow = typeof media.$inferSelect;
 type MediaInsert = typeof media.$inferInsert;
 
@@ -49,6 +49,19 @@ export function toPersistence(entity: Media): MediaInsert {
     statusUpdatedAt: entity.statusUpdatedAt,
   };
 }
+
+export interface MediaFilter {
+  ownerId?: string;
+  type?: MediaType;
+  status?: MediaStatus[];
+  includePrivate?: boolean;
+}
+
+export interface paginationFilter {
+  cursor?: string;
+  limit: number;
+}
+
 @Injectable()
 export class DrizzleMediaRepository implements MediaRepositoryPort {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
@@ -69,11 +82,17 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
     });
   }
 
-  async findOne(mediaId: string): Promise<Media | null> {
+  async findOne(mediaId: string, filter: MediaFilter): Promise<Media | null> {
     const [data] = await this.db
       .select()
       .from(media)
-      .where(and(eq(media.id, mediaId), eq(media.isDeleted, false)));
+      .where(
+        and(
+          eq(media.id, mediaId),
+          eq(media.isDeleted, false),
+          ...this.applyFilter(filter),
+        ),
+      );
 
     console.log('DB uploadId:', data?.uploadId);
 
@@ -87,8 +106,12 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
     return entity;
   }
 
-  async findAll(): Promise<Media[] | null> {
-    const data = await this.db.select().from(media);
+  async findMany(filter: MediaFilter): Promise<Media[] | null> {
+    const data = await this.db
+      .select()
+      .from(media)
+      .where(and(...this.applyFilter(filter), eq(media.isDeleted, false)));
+
     if (!data) {
       return null;
     }
@@ -102,5 +125,22 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
       .from(media)
       .where(eq(media.title, title));
     return data.map((d) => toDomain(d));
+  }
+
+  private applyFilter(filter: MediaFilter): SQL[] {
+    const conditios: SQL[] = [];
+    if (filter.includePrivate === false) {
+      conditios.push(eq(media.isPrivate, false));
+    }
+    if (filter.type) {
+      conditios.push(eq(media.mediaType, filter.type));
+    }
+    if (filter.ownerId) {
+      conditios.push(eq(media.ownerId, filter.ownerId));
+    }
+    if (filter.status?.length) {
+      conditios.push(inArray(media.status, filter.status));
+    }
+    return conditios;
   }
 }
