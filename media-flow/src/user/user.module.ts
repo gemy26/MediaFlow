@@ -6,6 +6,8 @@ import { ListUsers } from './application/use-cases/list-users';
 import { GetUser } from './application/use-cases/get-user';
 import { DeleteUser } from './application/use-cases/delete-user';
 import { UserController } from './presentation/user.controller';
+import { IDENTITY_PROVIDER } from './application/ports/identity-provider.port';
+import { WorkosIdentityProvider } from './infrastructure/adapters/WorkosIdentityProvider';
 
 @Module({
   controllers: [UserController],
@@ -18,6 +20,11 @@ import { UserController } from './presentation/user.controller';
       provide: USER_REPOSITORY,
       useClass: DrizzleUserRepository,
     },
+    {
+      provide: IDENTITY_PROVIDER,
+      useClass: WorkosIdentityProvider,
+    },
   ],
+  exports: [RegisterUser],
 })
 export class UserModule {}

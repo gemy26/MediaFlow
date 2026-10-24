@@ -67,6 +67,19 @@ export class DrizzleUserRepository implements UserRepository {
     return DrizzleUserRepository.toDomain(data);
   }
 
+  async findBySub(externalId: string): Promise<User | null> {
+    const [data] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.sub, externalId));
+
+    if (!data) {
+      return null;
+    }
+
+    return DrizzleUserRepository.toDomain(data);
+  }
+
   static toPersistence(user: User): typeof users.$inferInsert {
     return {
       id: user.id,

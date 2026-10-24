@@ -5,6 +5,8 @@ import { DrizzleModule } from './shared/infrastructure/database/postgres/drizzle
 import { UserModule } from './user/user.module';
 import { MediaModule } from './media/media.module';
 import { S3Module } from './shared/infrastructure/Storage/s3/s3.module';
+import { WorkosModule } from './shared/infrastructure/auth/workos/workos.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -14,8 +16,10 @@ import { S3Module } from './shared/infrastructure/Storage/s3/s3.module';
     }),
     DrizzleModule,
     S3Module,
+    WorkosModule,
     UserModule,
     MediaModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

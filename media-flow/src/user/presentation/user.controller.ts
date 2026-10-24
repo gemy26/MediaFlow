@@ -35,15 +35,6 @@ export class UserController {
     private readonly deleteUser: DeleteUser,
   ) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Register a user' })
-  @ApiCreatedResponse({ type: UserResponseDto })
-  @ApiBadRequestResponse({ description: 'Invalid request body' })
-  @ApiConflictResponse({ description: 'Email address is already registered' })
-  async register(@Body() dto: RegisterUserDto) {
-    return UserResponseDto.fromDomain(await this.registerUser.execute(dto));
-  }
-
   @Get()
   @ApiOperation({ summary: 'List users' })
   @ApiOkResponse({ type: UserResponseDto, isArray: true })

@@ -1,11 +1,14 @@
 import { USER_REPOSITORY } from '../ports/user.repository.port';
 import type { UserRepository } from '../ports/user.repository.port';
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { User } from '../../domain/user.entity';
 import { Role } from '../../domain/constants';
 import { randomUUID } from 'node:crypto';
+import type { IdentityProvider } from '../ports/identity-provider.port';
+import { IDENTITY_PROVIDER } from '../ports/identity-provider.port';
 
 export interface RegisterUserInput {
+  externalId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -15,17 +18,19 @@ export interface RegisterUserInput {
 export class RegisterUser {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    @Inject(IDENTITY_PROVIDER)
+    private readonly identityProvider: IdentityProvider,
   ) {}
 
   async execute(input: RegisterUserInput): Promise<User> {
-    const data = await this.userRepository.findByEmail(input.email);
+    const data = await this.userRepository.findBySub(input.externalId);
     if (data) {
-      throw new ConflictException('A user with this email already exists');
+      return data;
     }
 
     const user = User.register({
       id: randomUUID(),
-      sub: null,
+      sub: input.externalId,
       email: input.email,
       firstName: input.firstName,
       lastName: input.lastName,
@@ -33,6 +38,7 @@ export class RegisterUser {
     });
 
     await this.userRepository.save(user);
+    await this.identityProvider.syncRole(input.externalId, Role.USER);
     return user;
   }
 }
