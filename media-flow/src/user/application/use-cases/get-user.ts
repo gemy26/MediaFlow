@@ -16,4 +16,14 @@ export class GetUser {
     }
     return user;
   }
+
+  async executeBySub(sub: string): Promise<User> {
+    const user = await this.userRepository.findBySub(sub);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
 }

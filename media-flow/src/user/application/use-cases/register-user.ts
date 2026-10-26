@@ -23,7 +23,10 @@ export class RegisterUser {
   ) {}
 
   async execute(input: RegisterUserInput): Promise<User> {
-    const data = await this.userRepository.findBySub(input.externalId);
+    const data =
+      (await this.userRepository.findBySub(input.externalId)) ??
+      (await this.userRepository.findByEmail(input.email));
+
     if (data) {
       return data;
     }

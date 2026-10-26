@@ -1,7 +1,10 @@
 import {
   AuthenticatedIdentity,
   AuthServicePort,
+  RefreshedSession,
+  VerifiedSession,
 } from '../../application/ports/auth.port';
+import { decodeJwt } from 'jose';
 import {
   Inject,
   Injectable,
@@ -44,6 +47,8 @@ export class WorkosAuthProvider implements AuthServicePort {
       );
     }
 
+    console.log('[authenticateWithCode]: sealedSession', sealedSession);
+
     return {
       sealedSession,
       externalId: user.id,
@@ -51,5 +56,72 @@ export class WorkosAuthProvider implements AuthServicePort {
       firstName: user.firstName,
       lastName: user.lastName,
     };
+  }
+
+  async verifySession(sealedSession: string): Promise<VerifiedSession> {
+    const session = this.workos.userManagement.loadSealedSession({
+      sessionData: sealedSession,
+      cookiePassword: this.configService.getOrThrow('WORKOS_COOKIE_PASSWORD'),
+    });
+    const authResponse = await session.authenticate();
+    if (authResponse.authenticated) {
+      return {
+        authenticated: true,
+        externalId: authResponse.user.id,
+        role: this.extractRole(authResponse.accessToken),
+      };
+    } else {
+      return {
+        authenticated: false,
+        reason: authResponse.reason,
+      };
+    }
+  }
+
+  async refreshSession(sealedSession: string): Promise<RefreshedSession> {
+    const session = this.workos.userManagement.loadSealedSession({
+      sessionData: sealedSession,
+      cookiePassword: this.configService.getOrThrow('WORKOS_COOKIE_PASSWORD'),
+    });
+
+    const result = await session.refresh();
+    if (result.authenticated) {
+      return {
+        authenticated: true,
+        externalId: result.user.id,
+        sealedSession: result.sealedSession,
+        role: this.extractRole(result.session?.accessToken),
+      };
+    } else if (result.retryable) {
+      console.warn(
+        'Transient refresh failure; session preserved.',
+        result.reason,
+      );
+      return { authenticated: false, retryable: true };
+    } else {
+      return { authenticated: false, retryable: false };
+    }
+  }
+
+  async logout(sealedSession: string, returnTo?: string): Promise<string> {
+    const session = this.workos.userManagement.loadSealedSession({
+      sessionData: sealedSession,
+      cookiePassword: this.configService.getOrThrow('WORKOS_COOKIE_PASSWORD'),
+    });
+
+    const authResult = await session.authenticate();
+
+    if (!authResult.authenticated) {
+      return returnTo ?? this.configService.getOrThrow('APP_LOGIN_URL');
+    }
+
+    return this.workos.userManagement.getLogoutUrl({
+      sessionId: authResult.sessionId,
+      returnTo,
+    });
+  }
+  private extractRole(accessToken?: string): string | undefined {
+    if (!accessToken) return undefined;
+    return decodeJwt(accessToken)['urn:myapp:role'] as string | undefined;
   }
 }

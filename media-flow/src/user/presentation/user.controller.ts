@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Req,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -22,8 +23,10 @@ import { DeleteUser } from '../application/use-cases/delete-user';
 import { GetUser } from '../application/use-cases/get-user';
 import { ListUsers } from '../application/use-cases/list-users';
 import { RegisterUser } from '../application/use-cases/register-user';
-import { RegisterUserDto } from './dtos/register-user.dto';
 import { UserResponseDto } from './dtos/user-response.dto';
+import { Role } from '../domain/constants';
+import { Roles } from '../../shared/presentation/decorator/roles.decorator';
+import { ExternalId } from '../../shared/presentation/decorator/get-external-id.decorator';
 
 @Controller('user')
 @ApiTags('Users')
@@ -34,6 +37,17 @@ export class UserController {
     private readonly getUser: GetUser,
     private readonly deleteUser: DeleteUser,
   ) {}
+
+  @Get('me')
+  async me(@ExternalId() sub: string): Promise<UserResponseDto> {
+    return UserResponseDto.fromDomain(await this.getUser.executeBySub(sub));
+  }
+
+  @Roles([Role.ADMIN])
+  @Get('/admin')
+  admin() {
+    return 'yes that user is an admin';
+  }
 
   @Get()
   @ApiOperation({ summary: 'List users' })

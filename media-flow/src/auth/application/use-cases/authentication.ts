@@ -5,7 +5,7 @@ import { RegisterUser } from '../../../user/application/use-cases/register-user'
 import { User } from '../../../user/domain/user.entity';
 
 @Injectable()
-export class Login {
+export class Authentication {
   constructor(
     @Inject(AUTH_SERVICE) private readonly authService: AuthServicePort,
     private readonly registerUser: RegisterUser,
@@ -17,7 +17,7 @@ export class Login {
 
   async callback(code: string): Promise<{ sealedSession: string; user: User }> {
     const identity = await this.authService.authenticateWithCode(code);
-
+    console.log('[callback Use-Case]: identity: ', identity);
     const user = await this.registerUser.execute({
       externalId: identity.externalId,
       firstName: identity.firstName ?? '',
