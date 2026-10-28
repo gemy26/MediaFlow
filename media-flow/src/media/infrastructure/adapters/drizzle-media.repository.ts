@@ -1,10 +1,13 @@
-import { MediaRepositoryPort } from '../../application/ports/media.repository.port';
+import {
+  MediaRepositoryPort,
+  Page,
+} from '../../application/ports/media.repository.port';
 import { Media, MediaStatus, MediaType } from '../../domain';
 import { DRIZZLE } from '../../../shared/infrastructure/database/postgres/drizzle.provider';
 import type { DrizzleDB } from '../../../shared/infrastructure/database/postgres/drizzle.provider';
-import { Inject, Injectable } from '@nestjs/common';
-import { media } from '../../../shared/infrastructure/database/postgres/schema/media.schema';
-import { and, eq, inArray, SQL } from 'drizzle-orm';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { media } from '../../../shared/infrastructure/database/postgres/schema';
+import { and, eq, inArray, or, SQL, lt, desc } from 'drizzle-orm';
 type MediaRow = typeof media.$inferSelect;
 type MediaInsert = typeof media.$inferInsert;
 
@@ -106,16 +109,41 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
     return entity;
   }
 
-  async findMany(filter: MediaFilter): Promise<Media[] | null> {
-    const data = await this.db
+  async findMany(
+    filter: MediaFilter,
+    pagination: paginationFilter,
+  ): Promise<Page<Media>> {
+    const conditions: (SQL | undefined)[] = [
+      eq(media.isDeleted, false),
+      ...this.applyFilter(filter),
+    ];
+
+    if (pagination.cursor) {
+      const { createdAt, id } = this.decodeCursor(pagination.cursor);
+      conditions.push(
+        or(
+          lt(media.createdAt, createdAt),
+          and(eq(media.createdAt, createdAt), lt(media.id, id)),
+        ),
+      );
+    }
+
+    const rows = await this.db
       .select()
       .from(media)
-      .where(and(...this.applyFilter(filter), eq(media.isDeleted, false)));
+      .where(and(...conditions))
+      .orderBy(desc(media.createdAt), desc(media.id))
+      .limit(pagination.limit + 1);
 
-    if (!data) {
-      return null;
-    }
-    return data.map((d) => toDomain(d));
+    const hasMore = rows.length > pagination.limit;
+    const pageRows = hasMore ? rows.slice(0, pagination.limit) : rows;
+    const last = rows[pageRows.length - 1];
+
+    return {
+      items: rows.map((r) => toDomain(r)),
+      nextCursor:
+        hasMore && last ? this.encodeCursor(last.createdAt, last.id) : null,
+    };
   }
 
   async findByTitle(title: string): Promise<Media[] | null> {
@@ -142,5 +170,23 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
       conditios.push(inArray(media.status, filter.status));
     }
     return conditios;
+  }
+
+  private encodeCursor(createdAt: Date, id: string): string {
+    return Buffer.from(
+      JSON.stringify({ c: createdAt.toISOString(), i: id }),
+    ).toString('base64url');
+  }
+
+  private decodeCursor(cursor: string): { createdAt: Date; id: string } {
+    try {
+      const { c, i } = JSON.parse(
+        Buffer.from(cursor, 'base64url').toString('utf8'),
+      );
+      const createdAt = new Date(c);
+      return { createdAt, id: i };
+    } catch {
+      throw new BadRequestException('Invalid cursor');
+    }
   }
 }

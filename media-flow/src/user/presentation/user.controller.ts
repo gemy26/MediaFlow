@@ -49,6 +49,7 @@ export class UserController {
     return 'yes that user is an admin';
   }
 
+  @Roles([Role.ADMIN])
   @Get()
   @ApiOperation({ summary: 'List users' })
   @ApiOkResponse({ type: UserResponseDto, isArray: true })
@@ -66,6 +67,7 @@ export class UserController {
     return UserResponseDto.fromDomain(await this.getUser.execute(id));
   }
 
+  @Roles([Role.ADMIN])
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a user by ID' })

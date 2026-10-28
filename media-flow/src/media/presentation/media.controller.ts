@@ -36,6 +36,9 @@ import {
 import { CompleteUpload } from '../application/use-cases/complete-upload';
 import { GetUploadPartUrls } from '../application/use-cases/get-upload-part-urls';
 import { MediaQueryDto } from './dtos/media-query.dto';
+import { PaginatedMediaResponseDto } from './dtos/paginated-media-response.dto';
+import { Roles } from '../../shared/presentation/decorator/roles.decorator';
+import { Role } from '../../user/domain/constants';
 
 @Controller('api/media')
 @ApiTags('Media')
@@ -50,13 +53,15 @@ export class MediaController {
     private readonly getUploadPartUrls: GetUploadPartUrls,
   ) {}
 
-  //TODO: Add pagination
   @Get('/')
   @ApiOperation({ summary: 'List media' })
   @ApiOkResponse({ type: MediaResponseDto, isArray: true })
-  async listAll(@Query() query: MediaQueryDto): Promise<MediaResponseDto[]> {
-    return (await this.listMedia.execute(query)).map((m) =>
-      MediaResponseDto.fromDomain(m),
+  async listAll(
+    @Query() query: MediaQueryDto,
+  ): Promise<PaginatedMediaResponseDto> {
+    const { cursor, limit, ...filter } = query;
+    return PaginatedMediaResponseDto.fromPage(
+      await this.listMedia.execute(filter, { cursor, limit }),
     );
   }
 
@@ -85,6 +90,7 @@ export class MediaController {
     await this.updateMedia.execute(id, data);
   }
 
+  @Roles([Role.ADMIN])
   @Delete(':id')
   @ApiOperation({ summary: 'Delete media by ID' })
   @ApiParam({ name: 'id', format: 'uuid', description: 'Media identifier' })
