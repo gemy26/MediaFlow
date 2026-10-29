@@ -58,9 +58,11 @@ export class MediaController {
   @ApiOperation({ summary: 'List media' })
   @ApiOkResponse({ type: PaginatedMediaResponseDto })
   async listAll(
+    @CurrentUser('role') role: Role,
     @Query() query: MediaQueryDto,
   ): Promise<PaginatedMediaResponseDto> {
     const { cursor, limit, ...filter } = query;
+    filter.includePrivate = role === Role.ADMIN;
     return PaginatedMediaResponseDto.fromPage(
       await this.listMedia.execute(filter, { cursor, limit }),
     );
@@ -72,10 +74,12 @@ export class MediaController {
   @ApiOkResponse({ type: MediaResponseDto })
   @ApiNotFoundResponse({ description: 'Media not found' })
   async findById(
+    @CurrentUser('role') role: Role,
     @Param('id') id: string,
     @Query() query: MediaQueryDto,
   ): Promise<MediaResponseDto> {
-    return MediaResponseDto.fromDomain(await this.getMedia.execute(id, query));
+    const filter = { ...query, includePrivate: role === Role.ADMIN };
+    return MediaResponseDto.fromDomain(await this.getMedia.execute(id, filter));
   }
 
   @Put(':id')
