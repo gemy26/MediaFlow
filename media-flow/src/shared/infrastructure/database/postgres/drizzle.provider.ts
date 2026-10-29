@@ -5,7 +5,9 @@ import * as schema from './schema';
 
 export const DRIZZLE = Symbol('DRIZZLE');
 
-export type DrizzleDB = PostgresJsDatabase<typeof schema>;
+export type DrizzleDB = PostgresJsDatabase<typeof schema> & {
+  $client: postgres.Sql;
+};
 
 export const DrizzleProvider = {
   provide: DRIZZLE,

@@ -32,6 +32,7 @@ export class DrizzleUserRepository implements UserRepository {
           firstName: data.firstName,
           lastName: data.lastName,
           role: data.role,
+          sub: data.sub,
           isBlocked: data.isBlocked,
         },
       });

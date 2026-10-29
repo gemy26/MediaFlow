@@ -64,10 +64,6 @@ export class AuthController {
       this.configService.getOrThrow<string>('APP_LOGIN_URL');
 
     console.log('[logout Controller]: returnTo:', returnTo);
-    if (!sealedSession) {
-      return { url: returnTo };
-    }
-
     const url = await this.logoutUseCase.execute(sealedSession, returnTo);
     console.log('[logout Controller]: url:', url);
     return { url };

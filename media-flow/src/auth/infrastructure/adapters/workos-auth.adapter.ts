@@ -6,12 +6,18 @@ import {
 } from '../../application/ports/auth.port';
 import { decodeJwt } from 'jose';
 import {
+  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { WORKOS_PROVIDER } from '../../../shared/infrastructure/auth/workos/workos.provider';
-import { WorkOS } from '@workos-inc/node';
+import {
+  AuthenticationException,
+  BadRequestException as WorkosBadRequestException,
+  OauthException,
+  WorkOS,
+} from '@workos-inc/node';
 import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class WorkosAuthProvider implements AuthServicePort {
@@ -29,8 +35,8 @@ export class WorkosAuthProvider implements AuthServicePort {
   }
 
   async authenticateWithCode(code: string): Promise<AuthenticatedIdentity> {
-    const { sealedSession, user } =
-      await this.workos.userManagement.authenticateWithCode({
+    const { sealedSession, user } = await this.workos.userManagement
+      .authenticateWithCode({
         code,
         clientId: this.configService.getOrThrow('WORKOS_CLIENT_ID'),
         session: {
@@ -39,6 +45,16 @@ export class WorkosAuthProvider implements AuthServicePort {
             'WORKOS_COOKIE_PASSWORD',
           ),
         },
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof OauthException ||
+          error instanceof WorkosBadRequestException ||
+          error instanceof AuthenticationException
+        ) {
+          throw new BadRequestException('Invalid authorization code');
+        }
+        throw error;
       });
 
     if (!sealedSession) {

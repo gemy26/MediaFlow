@@ -6,6 +6,10 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "migrate:dev": "drizzle-kit migrate",
+    "migrate:test": "NODE_ENV=test drizzle-kit migrate",
+    "docker-up:test": "docker compose -p media-flow-test --env-file .env.test -f compose.yaml -f compose.test.yaml up -d --wait postgres minio",
+    "docker-down:test": "docker compose -p media-flow-test --env-file .env.test -f compose.yaml -f compose.test.yaml down",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -17,7 +21,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "pretest:e2e": "npm run docker-up:test && npm run migrate:test",
+    "test:e2e": "vitest run --config vitest.e2e.config.mts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1148.0",
@@ -45,12 +50,14 @@
     "@nestjs/config": "^12.0.1",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@swc/core": "^1.16.20",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@types/pg": "^8.23.1",
     "@types/supertest": "^6.0.2",
+    "@workos/emulate": "^0.17.1",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
@@ -66,7 +73,9 @@
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.23.15",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "^4.1.12"
   },
   "jest": {
     "moduleFileExtensions": [

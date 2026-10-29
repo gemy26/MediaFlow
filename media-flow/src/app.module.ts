@@ -14,7 +14,10 @@ import { RoleGuard } from './auth/presentation/guards/role.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: resolve(process.cwd(), '.env'),
+      envFilePath: resolve(
+        process.cwd(),
+        process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+      ),
       isGlobal: true,
     }),
     DrizzleModule,
