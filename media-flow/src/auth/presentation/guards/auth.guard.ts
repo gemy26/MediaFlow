@@ -41,7 +41,12 @@ export class AuthGuard implements CanActivate {
 
     if (!session.authenticated) {
       const refreshed = await this.authService.refreshSession(sealedSession);
-      if (!refreshed.authenticated) {
+      if (
+        !refreshed.authenticated ||
+        !refreshed.externalId ||
+        !refreshed.appUserId ||
+        !refreshed.sealedSession
+      ) {
         if (!refreshed.retryable) {
           response.clearCookie('wos-session');
         }
@@ -58,13 +63,18 @@ export class AuthGuard implements CanActivate {
         authenticated: true,
         externalId: refreshed.externalId,
         role: refreshed.role,
+        appUserId: refreshed.appUserId,
       };
     }
 
-    if (!session.authenticated || !session.externalId) {
+    if (!session.authenticated || !session.externalId || !session.appUserId) {
       throw new UnauthorizedException();
     }
-    request.user = { externalId: session.externalId, role: session.role };
+    request.user = {
+      externalId: session.externalId,
+      appUserId: session.appUserId,
+      role: session.role,
+    };
     return true;
   }
 }

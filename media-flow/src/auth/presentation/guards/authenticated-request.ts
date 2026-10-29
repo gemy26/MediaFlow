@@ -2,6 +2,7 @@ import type { Request } from 'express';
 
 export interface AuthenticatedUser {
   externalId: string;
+  appUserId: string;
   role?: string;
 }
 

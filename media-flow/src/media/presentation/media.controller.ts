@@ -39,6 +39,7 @@ import { MediaQueryDto } from './dtos/media-query.dto';
 import { PaginatedMediaResponseDto } from './dtos/paginated-media-response.dto';
 import { Roles } from '../../shared/presentation/decorator/roles.decorator';
 import { Role } from '../../user/domain/constants';
+import { CurrentUser } from '../../shared/presentation/decorator/get-current-user.decorator';
 
 @Controller('api/media')
 @ApiTags('Media')
@@ -104,9 +105,10 @@ export class MediaController {
   @ApiCreatedResponse({ type: AddMediaResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid request body' })
   @ApiConflictResponse({ description: 'Media with this title already exists' })
-  async initUpload(@Body() data: AddMediaDto): Promise<AddMediaResponseDto> {
-    //TODO: REFACTOR static OWNERID
-    const ownerId = '6664882f-8200-4616-896c-78d52068aeea';
+  async initUpload(
+    @CurrentUser('appUserId') ownerId: string,
+    @Body() data: AddMediaDto,
+  ): Promise<AddMediaResponseDto> {
     const output = await this.addMedia.execute({ ...data, ownerId });
     return AddMediaResponseDto.from(output);
   }

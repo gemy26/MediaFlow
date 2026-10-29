@@ -68,6 +68,7 @@ export class WorkosAuthProvider implements AuthServicePort {
       return {
         authenticated: true,
         externalId: authResponse.user.id,
+        appUserId: this.extractAppUserId(authResponse.accessToken),
         role: this.extractRole(authResponse.accessToken),
       };
     } else {
@@ -91,6 +92,7 @@ export class WorkosAuthProvider implements AuthServicePort {
         externalId: result.user.id,
         sealedSession: result.sealedSession,
         role: this.extractRole(result.session?.accessToken),
+        appUserId: this.extractAppUserId(result.session?.accessToken),
       };
     } else if (result.retryable) {
       console.warn(
@@ -123,5 +125,10 @@ export class WorkosAuthProvider implements AuthServicePort {
   private extractRole(accessToken?: string): string | undefined {
     if (!accessToken) return undefined;
     return decodeJwt(accessToken)['urn:myapp:role'] as string | undefined;
+  }
+  private extractAppUserId(accessToken?: string): string | undefined {
+    if (!accessToken) return undefined;
+    return decodeJwt(accessToken)['urn:myapp:app_user_id'] as
+      string | undefined;
   }
 }

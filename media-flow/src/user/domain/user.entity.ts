@@ -15,7 +15,7 @@ interface UserProps {
 export class User {
   private constructor(
     private readonly _id: string,
-    private readonly _sub: string | null,
+    private _sub: string | null,
     private _email: string,
     private _firstName: string,
     private _lastName: string,
@@ -71,6 +71,11 @@ export class User {
       this._lastName = params.lastName;
     }
 
+    this._updatedAt = new Date();
+  }
+
+  linkExternalIdentity(externalId: string): void {
+    this._sub = externalId;
     this._updatedAt = new Date();
   }
 

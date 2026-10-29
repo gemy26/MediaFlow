@@ -1,4 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { AUTH_SERVICE } from '../ports/auth.port';
 import type { AuthServicePort } from '../ports/auth.port';
 import { RegisterUser } from '../../../user/application/use-cases/register-user';
@@ -24,6 +28,21 @@ export class Authentication {
       lastName: identity.lastName ?? '',
       email: identity.email,
     });
-    return { sealedSession: identity.sealedSession, user };
+
+    const refreshed = await this.authService.refreshSession(
+      identity.sealedSession,
+    );
+
+    if (
+      !refreshed.authenticated ||
+      !refreshed.sealedSession ||
+      refreshed.appUserId !== user.id
+    ) {
+      throw new InternalServerErrorException(
+        'Refreshed WorkOS session is missing the matching app user ID claim',
+      );
+    }
+
+    return { sealedSession: refreshed.sealedSession, user };
   }
 }

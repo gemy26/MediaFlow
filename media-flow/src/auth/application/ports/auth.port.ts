@@ -11,6 +11,7 @@ export interface AuthenticatedIdentity {
 export interface VerifiedSession {
   authenticated: boolean;
   externalId?: string;
+  appUserId?: string;
   role?: string;
   reason?: string;
 }
@@ -19,6 +20,7 @@ export interface RefreshedSession {
   authenticated: boolean;
   sealedSession?: string;
   externalId?: string;
+  appUserId?: string;
   role?: string;
   retryable?: boolean;
 }

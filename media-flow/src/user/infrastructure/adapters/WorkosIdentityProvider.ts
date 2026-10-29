@@ -7,9 +7,14 @@ import { Role } from '../../domain/constants';
 @Injectable()
 export class WorkosIdentityProvider implements IdentityProvider {
   constructor(@Inject(WORKOS_PROVIDER) readonly workos: WorkOS) {}
-  async syncRole(externalId: string, role: Role): Promise<void> {
+  async syncRole(
+    externalId: string,
+    role: Role,
+    userId: string,
+  ): Promise<void> {
     await this.workos.userManagement.updateUser({
       userId: externalId,
+      externalId: userId,
       metadata: { role },
     });
   }

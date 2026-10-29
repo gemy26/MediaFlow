@@ -1,6 +1,6 @@
 import { USER_REPOSITORY } from '../ports/user.repository.port';
 import type { UserRepository } from '../ports/user.repository.port';
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { User } from '../../domain/user.entity';
 import { Role } from '../../domain/constants';
 import { randomUUID } from 'node:crypto';
@@ -23,25 +23,34 @@ export class RegisterUser {
   ) {}
 
   async execute(input: RegisterUserInput): Promise<User> {
-    const data =
+    let user =
       (await this.userRepository.findBySub(input.externalId)) ??
       (await this.userRepository.findByEmail(input.email));
 
-    if (data) {
-      return data;
+    if (user) {
+      if (user.sub && user.sub !== input.externalId) {
+        throw new ConflictException(
+          'Email is already linked to a different identity',
+        );
+      }
+      if (!user.sub) {
+        user.linkExternalIdentity(input.externalId);
+        await this.userRepository.save(user);
+      }
+    } else {
+      user = User.register({
+        id: randomUUID(),
+        sub: input.externalId,
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        role: Role.USER,
+      });
+      await this.userRepository.save(user);
     }
 
-    const user = User.register({
-      id: randomUUID(),
-      sub: input.externalId,
-      email: input.email,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      role: Role.USER,
-    });
-
-    await this.userRepository.save(user);
-    await this.identityProvider.syncRole(input.externalId, Role.USER);
+    // Also sync existing records so interrupted first-login attempts recover.
+    await this.identityProvider.syncRole(input.externalId, user.role, user.id);
     return user;
   }
 }
