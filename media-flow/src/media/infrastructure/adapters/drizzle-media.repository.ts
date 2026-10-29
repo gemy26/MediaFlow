@@ -1,13 +1,18 @@
 import {
   MediaRepositoryPort,
-  Page,
+  MediaFilter,
 } from '../../application/ports/media.repository.port';
 import { Media, MediaStatus, MediaType } from '../../domain';
+import type { Page, PageRequest } from '../../../shared/application/pagination';
 import { DRIZZLE } from '../../../shared/infrastructure/database/postgres/drizzle.provider';
 import type { DrizzleDB } from '../../../shared/infrastructure/database/postgres/drizzle.provider';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { media } from '../../../shared/infrastructure/database/postgres/schema';
 import { and, eq, inArray, or, SQL, lt, desc } from 'drizzle-orm';
+import {
+  decodeCreatedAtIdCursor,
+  encodeCreatedAtIdCursor,
+} from '../../../shared/infrastructure/database/postgres/cursor';
 type MediaRow = typeof media.$inferSelect;
 type MediaInsert = typeof media.$inferInsert;
 
@@ -51,18 +56,6 @@ export function toPersistence(entity: Media): MediaInsert {
     updatedAt: entity.updatedAt,
     statusUpdatedAt: entity.statusUpdatedAt,
   };
-}
-
-export interface MediaFilter {
-  ownerId?: string;
-  type?: MediaType;
-  status?: MediaStatus[];
-  includePrivate?: boolean;
-}
-
-export interface paginationFilter {
-  cursor?: string;
-  limit: number;
 }
 
 @Injectable()
@@ -111,7 +104,7 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
 
   async findMany(
     filter: MediaFilter,
-    pagination: paginationFilter,
+    pagination: PageRequest,
   ): Promise<Page<Media>> {
     const conditions: (SQL | undefined)[] = [
       eq(media.isDeleted, false),
@@ -119,7 +112,7 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
     ];
 
     if (pagination.cursor) {
-      const { createdAt, id } = this.decodeCursor(pagination.cursor);
+      const { createdAt, id } = decodeCreatedAtIdCursor(pagination.cursor);
       conditions.push(
         or(
           lt(media.createdAt, createdAt),
@@ -137,12 +130,14 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
 
     const hasMore = rows.length > pagination.limit;
     const pageRows = hasMore ? rows.slice(0, pagination.limit) : rows;
-    const last = rows[pageRows.length - 1];
+    const last = pageRows[pageRows.length - 1];
 
     return {
-      items: rows.map((r) => toDomain(r)),
+      items: pageRows.map((r) => toDomain(r)),
       nextCursor:
-        hasMore && last ? this.encodeCursor(last.createdAt, last.id) : null,
+        hasMore && last
+          ? encodeCreatedAtIdCursor(last.createdAt, last.id)
+          : null,
     };
   }
 
@@ -170,23 +165,5 @@ export class DrizzleMediaRepository implements MediaRepositoryPort {
       conditios.push(inArray(media.status, filter.status));
     }
     return conditios;
-  }
-
-  private encodeCursor(createdAt: Date, id: string): string {
-    return Buffer.from(
-      JSON.stringify({ c: createdAt.toISOString(), i: id }),
-    ).toString('base64url');
-  }
-
-  private decodeCursor(cursor: string): { createdAt: Date; id: string } {
-    try {
-      const { c, i } = JSON.parse(
-        Buffer.from(cursor, 'base64url').toString('utf8'),
-      );
-      const createdAt = new Date(c);
-      return { createdAt, id: i };
-    } catch {
-      throw new BadRequestException('Invalid cursor');
-    }
   }
 }

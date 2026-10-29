@@ -1,7 +1,7 @@
 import { MediaResponseDto } from './media-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Media } from '../../domain';
-import { Page } from '../../application/ports/media.repository.port';
+import type { Page } from '../../../shared/application/pagination';
 
 export class PaginatedMediaResponseDto {
   @ApiProperty({ type: MediaResponseDto, isArray: true })

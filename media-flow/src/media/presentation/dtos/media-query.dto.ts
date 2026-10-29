@@ -4,15 +4,13 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsInt,
   IsOptional,
   IsString,
-  Max,
-  Min,
 } from 'class-validator';
 import { MediaStatus, MediaType } from '../../domain';
+import { PaginationInputDto } from '../../../shared/presentation/dtos/pagination-input.dto';
 
-export class MediaQueryDto {
+export class MediaQueryDto extends PaginationInputDto {
   @ApiPropertyOptional({ description: 'Filter by media owner ID' })
   @IsOptional()
   @IsString()
@@ -42,19 +40,4 @@ export class MediaQueryDto {
   @Type(() => Boolean)
   @IsBoolean()
   includePrivate?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'The nextCursor value from the previous page',
-  })
-  @IsOptional()
-  @IsString()
-  cursor?: string;
-
-  @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 20 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit: number = 20;
 }

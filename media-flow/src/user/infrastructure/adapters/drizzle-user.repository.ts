@@ -1,11 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, lt, or, SQL } from 'drizzle-orm';
 import type { UserRepository } from '../../application/ports/user.repository.port';
 import { User } from '../../domain/user.entity';
 import { Role } from '../../domain/constants';
+import type { Page, PageRequest } from '../../../shared/application/pagination';
 import type { DrizzleDB } from '../../../shared/infrastructure/database/postgres/drizzle.provider';
 import { DRIZZLE } from '../../../shared/infrastructure/database/postgres/drizzle.provider';
 import { users } from '../../../shared/infrastructure/database/postgres/schema/users.schema';
+import {
+  decodeCreatedAtIdCursor,
+  encodeCreatedAtIdCursor,
+} from '../../../shared/infrastructure/database/postgres/cursor';
 
 @Injectable()
 export class DrizzleUserRepository implements UserRepository {
@@ -36,9 +41,37 @@ export class DrizzleUserRepository implements UserRepository {
     await this.db.delete(users).where(eq(users.id, userId));
   }
 
-  async findAll(): Promise<User[]> {
-    const data = await this.db.select().from(users);
-    return data.map(DrizzleUserRepository.toDomain);
+  async findAll(pagination: PageRequest): Promise<Page<User>> {
+    const conditions: (SQL | undefined)[] = [];
+
+    if (pagination.cursor) {
+      const { createdAt, id } = decodeCreatedAtIdCursor(pagination.cursor);
+      conditions.push(
+        or(
+          lt(users.createdAt, createdAt),
+          and(eq(users.createdAt, createdAt), lt(users.id, id)),
+        ),
+      );
+    }
+
+    const rows = await this.db
+      .select()
+      .from(users)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(users.createdAt), desc(users.id))
+      .limit(pagination.limit + 1);
+
+    const hasMore = rows.length > pagination.limit;
+    const pageRows = hasMore ? rows.slice(0, pagination.limit) : rows;
+    const last = pageRows[pageRows.length - 1];
+
+    return {
+      items: pageRows.map(DrizzleUserRepository.toDomain),
+      nextCursor:
+        hasMore && last
+          ? encodeCreatedAtIdCursor(last.createdAt, last.id)
+          : null,
+    };
   }
 
   async findByEmail(email: string): Promise<User | null> {

@@ -1,11 +1,12 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Media } from '../../domain';
-import type { MediaRepositoryPort, Page } from '../ports/media.repository.port';
-import { MEDIA_REPOSITORY } from '../ports/media.repository.port';
-import {
+import type { Page, PageRequest } from '../../../shared/application/pagination';
+import type {
   MediaFilter,
-  paginationFilter,
-} from '../../infrastructure/adapters/drizzle-media.repository';
+  MediaRepositoryPort,
+} from '../ports/media.repository.port';
+import { MEDIA_REPOSITORY } from '../ports/media.repository.port';
+
 @Injectable()
 export class ListMedia {
   constructor(
@@ -14,10 +15,8 @@ export class ListMedia {
   ) {}
   async execute(
     filter: MediaFilter,
-    paginationFilter: paginationFilter,
+    pagination: PageRequest,
   ): Promise<Page<Media>> {
-    const data = await this.userRepository.findMany(filter, paginationFilter);
-    if (!data) throw new NotFoundException(`No Media found`);
-    return data;
+    return this.userRepository.findMany(filter, pagination);
   }
 }

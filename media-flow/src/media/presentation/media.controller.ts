@@ -56,7 +56,7 @@ export class MediaController {
 
   @Get('/')
   @ApiOperation({ summary: 'List media' })
-  @ApiOkResponse({ type: MediaResponseDto, isArray: true })
+  @ApiOkResponse({ type: PaginatedMediaResponseDto })
   async listAll(
     @Query() query: MediaQueryDto,
   ): Promise<PaginatedMediaResponseDto> {

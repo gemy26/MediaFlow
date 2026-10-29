@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -24,6 +25,8 @@ import { GetUser } from '../application/use-cases/get-user';
 import { ListUsers } from '../application/use-cases/list-users';
 import { RegisterUser } from '../application/use-cases/register-user';
 import { UserResponseDto } from './dtos/user-response.dto';
+import { UserQueryDto } from './dtos/user-query.dto';
+import { PaginatedUserResponseDto } from './dtos/paginated-user-response.dto';
 import { Role } from '../domain/constants';
 import { Roles } from '../../shared/presentation/decorator/roles.decorator';
 import { ExternalId } from '../../shared/presentation/decorator/get-external-id.decorator';
@@ -52,10 +55,15 @@ export class UserController {
   @Roles([Role.ADMIN])
   @Get()
   @ApiOperation({ summary: 'List users' })
-  @ApiOkResponse({ type: UserResponseDto, isArray: true })
-  async findAll() {
-    return (await this.listUsers.execute()).map((user) =>
-      UserResponseDto.fromDomain(user),
+  @ApiOkResponse({ type: PaginatedUserResponseDto })
+  async findAll(
+    @Query() query: UserQueryDto,
+  ): Promise<PaginatedUserResponseDto> {
+    return PaginatedUserResponseDto.fromPage(
+      await this.listUsers.execute({
+        cursor: query.cursor,
+        limit: query.limit,
+      }),
     );
   }
 
