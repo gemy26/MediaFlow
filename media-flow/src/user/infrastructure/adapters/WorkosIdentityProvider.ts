@@ -18,4 +18,16 @@ export class WorkosIdentityProvider implements IdentityProvider {
       metadata: { role },
     });
   }
+
+  async syncDeleteUser(externalId: string): Promise<void> {
+    const paginatedSessions =
+      await this.workos.userManagement.listSessions(externalId);
+    const sessions = await paginatedSessions.autoPagination();
+    for (const session of sessions) {
+      await this.workos.userManagement.revokeSession({
+        sessionId: session.id,
+      });
+    }
+    await this.workos.userManagement.deleteUser(externalId);
+  }
 }
