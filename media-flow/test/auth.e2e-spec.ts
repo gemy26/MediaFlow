@@ -28,6 +28,7 @@ import {
   authorizeAs,
   Emulator,
   emulatorClient,
+  expireAccessToken,
   getSessionCookie,
   loginAs,
   startEmulator,
@@ -81,11 +82,6 @@ describe('Auth (e2e)', () => {
   });
 
   const login = (user: { email: string }) => loginAs(http, user.email);
-
-  const expireAccessToken = () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(Date.now() + 10 * 60_000);
-  };
 
   describe('GET /auth/login', () => {
     it('redirects to WorkOS authorize with client, redirect URI and state', async () => {

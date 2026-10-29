@@ -13,6 +13,7 @@ export interface SeededUser {
   firstName: string;
   lastName: string;
   role: Role;
+  createdAt: Date;
 }
 
 export interface SeedUserOptions {
@@ -20,6 +21,7 @@ export interface SeedUserOptions {
   firstName?: string;
   lastName?: string;
   role?: Role;
+  createdAt?: Date;
 }
 
 export async function seedUser(
@@ -34,6 +36,7 @@ export async function seedUser(
     firstName: opts.firstName ?? 'Test',
     lastName: opts.lastName ?? 'User',
     role: opts.role ?? Role.USER,
+    createdAt: opts.createdAt ?? new Date(),
   };
 
   const wosUser = await workos.userManagement.createUser({
@@ -51,6 +54,8 @@ export async function seedUser(
     firstName: user.firstName,
     lastName: user.lastName,
     role: user.role,
+    createdAt: user.createdAt,
+    updatedAt: user.createdAt,
   });
 
   return { ...user, sub: wosUser.id };

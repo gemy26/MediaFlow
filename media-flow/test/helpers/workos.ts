@@ -2,6 +2,7 @@ import { createEmulator } from '@workos/emulate';
 import { WorkOS } from '@workos-inc/node';
 import request from 'supertest';
 import type { App } from 'supertest/types';
+import { vi } from 'vitest';
 
 export type Emulator = Awaited<ReturnType<typeof createEmulator>>;
 
@@ -71,4 +72,9 @@ export async function loginAs(http: App, email: string): Promise<string> {
     throw new Error('Callback did not set a wos-session cookie');
   }
   return cookie.split(';')[0];
+}
+
+export function expireAccessToken(): void {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(Date.now() + 10 * 60_000);
 }

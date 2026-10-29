@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
   Query,
   Req,
@@ -70,8 +71,9 @@ export class UserController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a user by ID' })
   @ApiOkResponse({ type: UserResponseDto })
+  @ApiBadRequestResponse({ description: 'ID is not a valid UUID' })
   @ApiNotFoundResponse({ description: 'User not found' })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return UserResponseDto.fromDomain(await this.getUser.execute(id));
   }
 
@@ -80,8 +82,9 @@ export class UserController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a user by ID' })
   @ApiNoContentResponse({ description: 'User deleted' })
+  @ApiBadRequestResponse({ description: 'ID is not a valid UUID' })
   @ApiNotFoundResponse({ description: 'User not found' })
-  async remove(@Param('id') id: string): Promise<void> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.deleteUser.execute(id);
   }
 }
